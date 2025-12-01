@@ -1,0 +1,72 @@
+#!/usr/bin/env nu
+
+def circ [val: int, --limit (-l): int = 100] {
+    (($val mod $limit) + $limit) mod $limit
+}
+
+
+def circ2 [start: int, rotation: int, direction: string, --limit (-l): int = 100] {
+  let reminder: int = $rotation mod $limit
+  mut zeros: int =  $rotation // $limit
+  if $direction == "R" {
+    if ($start + $reminder) >= $limit {
+      zeros = $zeros + 1
+    }
+  } else {
+    if ($start - $reminder) < 0 {
+      zeros = $zeros + 1
+    }
+      }
+  {zeros: ($rotation // $limit), pos: (if $direction == "R" { 
+    circ ($start + $reminder) --limit $limit
+   } else {
+    circ ($start - $reminder) --limit $limit
+   })
+  }
+}
+
+def star2 [file] {
+  let input = (open $file | 
+    lines |
+    wrap raw |
+    insert direction { |r| $r.raw | str substring 0..0} |
+    insert steps { |r| $r.raw | str substring 1..-1 | into int } |
+    reject raw
+  ) 
+  let result = ($input | reduce --fold {pos: 50, zeros: 0} { |r, acc|
+    let res = circ2 $acc.pos $r.steps $r.direction --limit 100
+    {
+      pos: $res.pos
+      zeros: ($res.zeros + (if $res.pos == 0 { $acc.zeros + 1 } else { $acc.zeros }))
+    }
+  })
+  print $result
+}
+
+def star1 [file] {
+  let input = (open $file | 
+    lines |
+    wrap raw |
+    insert direction { |r| $r.raw | str substring 0..0} |
+    insert steps { |r| $r.raw | str substring 1..-1 | into int } |
+    reject raw
+  ) 
+  let result = ($input | reduce --fold {pos: 50, zeros: 0} { |r, acc|
+    let new_pos = if $r.direction == "R" {
+      circ ($acc.pos + $r.steps) --limit 100
+    } else {
+      circ ($acc.pos - $r.steps) --limit 100
+    }
+    {
+      pos: $new_pos
+      zeros: (if $new_pos == 0 { $acc.zeros + 1 } else { $acc.zeros })
+    }
+  })
+  print $result
+}
+
+def main [file = "input.txt"] {
+  # star1 $file
+  star2 $file
+}
+
